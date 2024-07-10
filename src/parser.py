@@ -47,6 +47,9 @@ func void DIA_{self.npc_name}_Exit_Info()
         for line in lines:
             line = line.strip()
 
+            if line.startswith('//'):
+                self.parsed_text += f'\t{line}\n'
+
             if line.startswith('#'):
                 if line.startswith('# IMPORTANT:'):
                     dialogue_important = self.extract_value(line)
@@ -64,26 +67,26 @@ func void DIA_{self.npc_name}_Exit_Info()
                     self.start_dialogue(dialogue_id, dialogue_important, dialogue_perm, dialogue_desc)
                     state = 'DIALOGUE'
             
-            elif line.startswith('N:'):
+            if line.startswith('N:'):
                 self.add_narration(line, dialogue_id, self.current_voice)
 
-            elif line.startswith('H:'):
+            if line.startswith('H:'):
                 self.add_player_response(line, dialogue_id)
 
-            elif line.startswith('#'):
+            if line.startswith('#'):
                 if line.startswith('# VOICE:'):
                     self.current_voice = self.extract_value(line)
                 elif line.startswith('# CLEAR_CHOICES'):
                     self.clear_choices(dialogue_id)
 
-            elif line.startswith('+'):
+            if line.startswith('+'):
                 self.add_dialogue_name(line, dialogue_id)
 
-            elif not line.strip(): # if line is empty
+            if not line.strip(): # if line is empty
                 self.end_dialogue()
                 state = 'START'
 
-            elif line.startswith('->'):
+            if line.startswith('->'):
                 if line.startswith('-> DONE'):
                     self.end_choice()
                     state = 'START'
@@ -146,12 +149,14 @@ func void DIA_{self.npc_name}_Exit_Info()
 
     def add_narration(self, line, dialogue_id, current_voice):
         narration = line.split('N:')[-1].strip()
-        index = len(re.findall(rf'AI_Output\(self, other, "DIA_{self.npc_name}_{dialogue_id}_\w{2}_\d{2}"', self.parsed_text)) + 1
+        index = len(re.findall(fr'DIA_{self.npc_name}_{dialogue_id}_\w{{2}}_\d{{2}}"', self.parsed_text))
+        print(f'self: {index}')
         self.parsed_text += f"\tAI_Output(self, other, \"DIA_{self.npc_name}_{dialogue_id}_{current_voice}_{str(index).zfill(2)}\"); //{narration}\n"
 
     def add_player_response(self, line, dialogue_id):
         response = line.split('H:')[-1].strip()
-        index = len(re.findall(rf'AI_Output\(other, self, "DIA_{self.npc_name}_{dialogue_id}_\w{2}_\d{2}"', self.parsed_text)) + 1
+        index = len(re.findall(fr'DIA_{self.npc_name}_{dialogue_id}_\w{{2}}_\d{{2}}"', self.parsed_text))
+        print(f'other: {index}')
         self.parsed_text += f"\tAI_Output(other, self, \"DIA_{self.npc_name}_{dialogue_id}_15_{str(index).zfill(2)}\"); //{response}\n"
 
     def add_dialogue_name(self, line, dialogue_id):
