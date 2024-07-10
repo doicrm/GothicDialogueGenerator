@@ -162,5 +162,5 @@ cython_debug/
 # Gothic & Inky specific files
 .dls/
 output/
-.d
-.ink
+*.d
+*.ink
