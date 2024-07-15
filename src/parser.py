@@ -5,7 +5,7 @@ class InkParser:
     def __init__(self, input_file, npc_name):
         self.ink_text = FileReader.read_file(input_file)
         self.npc_name = npc_name
-       	self.parsed_text = ""
+        self.parsed_text = ""
         self.current_voice = ""
         self.parse_ink()
 
@@ -13,24 +13,9 @@ class InkParser:
         return f"""///////////////////////////////////////////////////////////////////////
 //	Info EXIT
 ///////////////////////////////////////////////////////////////////////
-instance DIA_{self.npc_name}_Exit (C_INFO)
+instance DIA_{self.npc_name}_Exit (DIA_Exit_Default)
 {{
-\tnpc			= {self.npc_name};
-\tnr			= 999;
-\tcondition	= DIA_{self.npc_name}_Exit_Condition;
-\tinformation	= DIA_{self.npc_name}_Exit_Info;
-\tpermanent	= TRUE;
-\tdescription = DIALOG_END;
-}};
-
-func int DIA_{self.npc_name}_Exit_Condition()
-{{
-\treturn TRUE;
-}};
-
-func void DIA_{self.npc_name}_Exit_Info()
-{{
-\tAI_StopProcessInfos(self);
+\tnpc = {self.npc_name};
 }};\n
 """
 
@@ -64,14 +49,14 @@ func void DIA_{self.npc_name}_Exit_Info()
                     self.start_choice(choice_id)
                 elif state == 'START':
                     dialogue_id = self.extract_id(line)
-                    self.start_dialogue(dialogue_id, dialogue_important, dialogue_perm, dialogue_desc)
+                    self.generate_dialogue(dialogue_id, dialogue_important, dialogue_perm, dialogue_desc)
                     state = 'DIALOGUE'
             
             if line.startswith('N:'):
-                self.add_narration(line, dialogue_id, self.current_voice)
+                self.add_npc_line(line, dialogue_id, self.current_voice)
 
             if line.startswith('H:'):
-                self.add_player_response(line, dialogue_id)
+                self.add_player_line(line, dialogue_id)
 
             if line.startswith('#'):
                 if line.startswith('# VOICE:'):
@@ -80,7 +65,7 @@ func void DIA_{self.npc_name}_Exit_Info()
                     self.clear_choices(dialogue_id)
 
             if line.startswith('+'):
-                self.add_dialogue_name(line, dialogue_id)
+                self.add_choice(line, dialogue_id)
 
             if not line.strip(): # if line is empty
                 self.end_dialogue()
@@ -88,7 +73,7 @@ func void DIA_{self.npc_name}_Exit_Info()
 
             if line.startswith('->'):
                 if line.startswith('-> DONE'):
-                    self.end_choice()
+                    self.exit_dialogue()
                     state = 'START'
 
     def extract_id(self, line):
@@ -109,7 +94,7 @@ func void DIA_{self.npc_name}_Exit_Info()
     def get_dialogue_description(self, line):
         return line.lstrip("# DESC:")
 
-    def start_dialogue(self, dialogue_id, dialogue_important, dialogue_perm, dialogue_desc):
+    def generate_dialogue(self, dialogue_id, dialogue_important, dialogue_perm, dialogue_desc):
         self.parsed_text += f"///////////////////////////////////////////////////////////////////////\n"
         self.parsed_text += f"//\tInfo {dialogue_id.upper()}\n"
         self.parsed_text += f"///////////////////////////////////////////////////////////////////////\n"
@@ -147,23 +132,23 @@ func void DIA_{self.npc_name}_Exit_Info()
     def end_dialogue(self):
         self.parsed_text += "};\n\n"
 
-    def add_narration(self, line, dialogue_id, current_voice):
-        narration = line.split('N:')[-1].strip()
+    def add_npc_line(self, line, dialogue_id, current_voice):
+        npc_line = line.split('N:')[-1].strip()
         index = len(re.findall(fr'DIA_{self.npc_name}_{dialogue_id}_\w{{2}}_\d{{2}}"', self.parsed_text))
-        self.parsed_text += f"\tAI_Output(self, other, \"DIA_{self.npc_name}_{dialogue_id}_{current_voice}_{str(index).zfill(2)}\"); //{narration}\n"
+        self.parsed_text += f"\tAI_Output(self, other, \"DIA_{self.npc_name}_{dialogue_id}_{current_voice}_{str(index).zfill(2)}\"); //{npc_line}\n"
 
-    def add_player_response(self, line, dialogue_id):
-        response = line.split('H:')[-1].strip()
+    def add_player_line(self, line, dialogue_id):
+        player_line = line.split('H:')[-1].strip()
         index = len(re.findall(fr'DIA_{self.npc_name}_{dialogue_id}_\w{{2}}_\d{{2}}"', self.parsed_text))
-        self.parsed_text += f"\tAI_Output(other, self, \"DIA_{self.npc_name}_{dialogue_id}_15_{str(index).zfill(2)}\"); //{response}\n"
+        self.parsed_text += f"\tAI_Output(other, self, \"DIA_{self.npc_name}_{dialogue_id}_15_{str(index).zfill(2)}\"); //{player_line}\n"
 
-    def add_dialogue_name(self, line, dialogue_id):
+    def add_choice(self, line, dialogue_id):
         pattern = r'\[(.*?)\]'
         matches = re.findall(pattern, line)
         dialogue_name = ''.join(matches)
         self.parsed_text += f"\tInfo_AddChoice(DIA_{self.npc_name}_{dialogue_id}, \"{dialogue_name}\", DIA_{self.npc_name}_{dialogue_id}_Choice{line[-2:]});\n"
 
-    def end_choice(self):
+    def exit_dialogue(self):
         self.parsed_text += "\tAI_StopProcessInfos(self);\n"
 
     def clear_choices(self, dialogue_id):

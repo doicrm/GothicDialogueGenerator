@@ -4,6 +4,7 @@ from src.file_saver import FileSaver
 from customtkinter import *
 import tkinter.filedialog as filedialog
 
+
 class App(CTk):
     def __init__(self):
         super().__init__()
@@ -45,9 +46,11 @@ class App(CTk):
         FileSaver(file_path, parsed_text)
         print(f"Dialogue saved to `{file_path}`.")
 
+
 def run_gui():
     app = App()
     app.mainloop()
+
 
 def run_cli(file_path, npc_name):
     if not file_path:
@@ -62,6 +65,7 @@ def run_cli(file_path, npc_name):
     output_file_path = f"DIA_{npc_name}.d"
     FileSaver(output_file_path, parsed_text)
     print(f"Dialogue saved to `{output_file_path}`.")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Gothic Dialogue Generator")
